@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('./database');
-const Products = require('./routes/Products')
+const Products = require('./routes/Products');
+const Cart = require('./routes/Cart');
 
 
 const app = express();
@@ -8,6 +9,7 @@ const app = express();
 
 
 app.use('/api/products', Products);
+app.use('/api/cart', Cart);
 
 
 

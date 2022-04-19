@@ -1,7 +1,12 @@
-const express = require('express');
 const db = require('../database');
 const { getQRcodeHash, convertToBase64, saveQrcode2Local } = require('../middleware/QrCodeHelper');
 const QrCode = require('qrcode');
+var QrCode_reader = require('qrcode-reader');
+const fs = require('fs');
+var Jimp = require('jimp');
+const path = require('path');
+var Canvas = require('canvas'), Image = Canvas.Image, QRCODE = require('jsqrcode')(Canvas)
+
 
 
 // add a new product to the store that hotnot have
@@ -38,7 +43,7 @@ exports.addNewProduct = async (req, res) => {
                             console.log(err);
                             res.status(400).json(err.message);
                         } else {
-                            console.log(result);
+                            // console.log(result);
                             res.status(200).json({ data: result });
                         }
                     }
@@ -57,7 +62,18 @@ exports.addNewProduct = async (req, res) => {
                     product_ID = proID[0].productID;
 
                     // save the qrcode with name of productID in the utils
-                    saveQrcode2Local(string_data, product_ID);
+                    const data_to_convert_in_string = {
+                        "title": title,
+                        "description": description,
+                        "cost_prize": cost_prize,
+                        "selling_prize": selling_prize,
+                        "createdAt": createdAt,
+                        "quantity": quantity,
+                        "productID": product_ID
+                    }
+                    const data_to_pass = JSON.stringify(data_to_convert_in_string);
+
+                    saveQrcode2Local(data_to_pass, product_ID);
                 })
             }
             catch (error) {
@@ -84,21 +100,48 @@ exports.getAllProductsInStore = async (req, res) => {
 
 
 // get a particular product that hotnot have (Fetch through qrCode hash)
-exports.getAProductFromQRHash = async (req, res) => {
+exports.getAProductFromQRCode = async (req, res) => {
 
-    let QrCodeHash;
+    try {
 
-    // add funcatinolity for scanner code hash
+        var buffer = req.file;
+        console.log(buffer.filename);
+        console.log(buffer.path);
 
-    let query = `SELECT * FROM hotnot_store.product WHERE(qrCode_hash = '${QrCodeHash}'); `
+        // read the qr code
+        Jimp.read(buffer.path, (err, image) => {
+            if (err) {
+                console.error(err);
+                res.status(400).json(err.message);
+            }
+            
+            var qrcode = new QrCode_reader();
+            qrcode.callback = function (err, value) {
+                if (err) {
+                    console.error(err);
+                    res.status(400).json(err.message);
+                }
+                // Printing the decrypted value
+                // console.log(value.result);
+                let product = JSON.parse(value.result);
+                res.status(200).json(product);
+            };
+            // Decoding the QR code
+            qrcode.decode(image.bitmap);
 
-    db.query(query, (err, product) => {
-
-        if (err) return res.status(400).json(err.message);
-        else return res.status(200).json(product);
 
 
-    })
+        })
+
+        // delete the buffer file
+        fs.unlinkSync(`${buffer.path}`);
+
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json(err.message);
+    }
+
 
 }
 
@@ -183,21 +226,21 @@ exports.deleteProduct = async (req, res) => {
 //update the product details
 exports.updateProduct = async (req, res) => {
 
-    try{
+    try {
         const product_id = req.params.id;
         const { title, description, cost_prize, selling_prize } = req.body;
-    
+
         //get the updated date
         const currentDate = new Date();
         let updatedAt = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${currentDate.getDate()} ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`
-    
+
         if (!(title && description && cost_prize && selling_prize)) {
             return res.status(400).json({ msg: "Fill the details correctly! Some property is not Filled" });
         }
         else {
             //update query
             let query = `UPDATE hotnot_store.product SET title='${title}' , description='${description}' , cost_prize='${cost_prize}', selling_prize='${selling_prize}', updatedAt='${updatedAt}' WHERE (productID='${product_id}')`
-    
+
             try {
                 db.query(query, (err, data) => {
                     if (err) return res.status(400).json(err.message);
@@ -210,7 +253,7 @@ exports.updateProduct = async (req, res) => {
         }
 
     }
-    catch(err){
+    catch (err) {
         res.status(400).json(err.message)
     }
 }

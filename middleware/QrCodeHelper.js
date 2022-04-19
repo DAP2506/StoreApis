@@ -1,3 +1,4 @@
+const res = require('express/lib/response');
 const QrCode = require('qrcode');
 const QrReader = require('qrcode-reader');
 
@@ -10,9 +11,14 @@ const getQRcodeHash = async (string_data) => {
         if (err) return console.log("error occured")
         // console.log(url);
         qrCodeHash = url;
+
         // return url;
     })
-    return qrCodeHash
+
+    setTimeout(() => {
+        console.log(qrCodeHash);
+    }, 3000);
+
 
 }
 
@@ -30,13 +36,43 @@ const convertToBase64 = async (string_data) => {
 
 const saveQrcode2Local = async (string, productID) => {
     // const filename = path.join(process.cwd(), `${string}.png`)
-    
+
+    // try {
+    //     let qrCodeHash;
+
+    //     // Print the QR code to terminal
+    //     QrCode.toString(string, { type: 'terminal' }, function (err, url) {
+    //         if (err) return console.log("error occured")
+    //         // console.log(url);
+    //         qrCodeHash = url;
+
+    //         // return url;
+    //     })
+
+    //     setTimeout(() => {
+    //         console.log(qrCodeHash);
+
+
+
+
+
+    //     }, 3000);
+    // }
+    // catch (error) {
+    //     console.log(error);
+    // }
+
+
+
+
+
+
     try {
         await QrCode.toFile(`./utils/qrcodes/${productID}.png`, string)
-   }
-   catch(err) {
-       console.log(err);
-   }
+    }
+    catch (err) {
+        console.log(err);
+    }
 }
 
 
